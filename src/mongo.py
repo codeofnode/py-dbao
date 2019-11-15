@@ -5,20 +5,34 @@ from base import Store, PRE_AUTH, PERMISSION_REQUIRED_KEY
 
 
 class MongoStore(Store):
+    """MongoStore"""
 
     @staticmethod
     def genId(inputId):
+        """genId
+
+        :param inputId:
+        """
         return ObjectId(inputId) if (isinstance(inputId, str) and
                                      ObjectId.is_valid(inputId)) else inputId
 
     @staticmethod
     def transformOutput(rec):
+        """transformOutput
+
+        :param rec:
+        """
         if rec and '_id' in rec and isinstance(rec['_id'], str):
             rec['_id'] = str(rec['_id'])
         return rec
 
     @staticmethod
     def addRBACListFilter(users, filters):
+        """addRBACListFilter
+
+        :param users:
+        :param filters:
+        """
         mainFilter = [{
             PERMISSION_REQUIRED_KEY: {'$exists': False}
         }, {
@@ -34,15 +48,33 @@ class MongoStore(Store):
         return filters
 
     def getDbCollection(self, name):
+        """getDbCollection
+
+        :param name:
+        """
         return self.db.collection(self.getDbCollectionName(name))
 
     def count(self, user, coll, filters, options):
+        """count
+
+        :param user:
+        :param coll:
+        :param filters:
+        :param options:
+        """
         collection = self.preAuthorizedColl(user, coll, filters, options)
         if collection:
             return collection.count(filters)
         raise CollectionNotFoundError
 
     def list(self, user, coll, filters, options={}):
+        """list
+
+        :param user:
+        :param coll:
+        :param filters:
+        :param options:
+        """
         result = Result()
         result.records = []
         result.total = 0
@@ -65,10 +97,18 @@ class MongoStore(Store):
         return result
 
     def listcolls(self):
+        """listcolls"""
         return map(
                 self.transformCollectionName, self.db.list_collection_names())
 
     def read(self, user, coll, _id, options):
+        """read
+
+        :param user:
+        :param coll:
+        :param _id:
+        :param options:
+        """
         cont = self.getDbCollection(coll).find_one({
             '_id': MongoStore.genId(_id)
         }, projection=options.get('projection'))
@@ -77,6 +117,14 @@ class MongoStore(Store):
         return cont
 
     def write(self, user, coll, _id, data, options={}):
+        """write
+
+        :param user:
+        :param coll:
+        :param _id:
+        :param data:
+        :param options:
+        """
         collection = self.getDbCollection(coll)
         if _id:
             prevInfo = self.getPrevDoc(user, coll, _id, options)
@@ -102,6 +150,13 @@ class MongoStore(Store):
         return newId
 
     def delete(self, user, coll, _id, options):
+        """delete
+
+        :param user:
+        :param coll:
+        :param _id:
+        :param options:
+        """
         prevInfo = self.getPrevDoc(user, coll, _id, options)
         authUpdate = self.authorize(user, coll, 1, prevInfo, options)
         self.getDbCollection(coll).delete_one({_id: Store.GenId(_id)})
@@ -109,6 +164,11 @@ class MongoStore(Store):
         return 1
 
     def setupIndexes(self, coll, indexes):
+        """setupIndexes
+
+        :param coll:
+        :param indexes:
+        """
         allIndexes = []
         if isinstance(indexes, list):
             collection = self.getDbCollection(coll)
@@ -121,9 +181,18 @@ class MongoStore(Store):
         return allIndexes
 
     def createCollection(self, coll):
+        """createCollection
+
+        :param coll:
+        """
         self.db.create_collection(self.getDbCollectionName(coll))
 
     def rmcoll(self, coll, user):
+        """rmcoll
+
+        :param coll:
+        :param user:
+        """
         self.authorizeCollection(coll, 1, user)
         self.getDbCollection(coll).drop()
         return 1
